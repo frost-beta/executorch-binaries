@@ -1,0 +1,4 @@
+[submodule "executorch"]
+	path = executorch
+	url = https://github.com/pytorch/executorch.git
+	shallow = true

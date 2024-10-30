@@ -1,0 +1,55 @@
+name: build
+
+on: push
+
+jobs:
+  build:
+    runs-on: >-
+      ${{
+        (matrix.os == 'mac' && matrix.arch == 'arm64') &&
+          'macos-14' ||
+          (fromJson('{"linux":"ubuntu-22.04","mac":"macos-13","win":"windows-2022"}')[matrix.os])
+      }}
+    continue-on-error: false
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [linux, mac]
+        arch: [arm64, x64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Bootstrap
+        run: |
+          npm install -g zx
+          zx bootstrap.mjs
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      # Needed by action-gh-release.
+      contents: write
+
+    steps:
+      - name: Download Files
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Compress files
+        run: gzip *
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          name: ExecuTorch ${{ github.ref_name }}
+          body: '## Changelog'
+          files: '*.gz'
