@@ -43,6 +43,11 @@ try {
   process.env.CXX = await which('clang++')
 } catch {}
 
+// Use ccache when available.
+try {
+  flags.push(`CMAKE_CXX_COMPILER_LAUNCHER=${await which('ccache')}`)
+} catch {}
+
 // Regenerate project if repo or build args args updated.
 const outDir = 'out'
 const version = (await $`git submodule`).stdout.trim()
