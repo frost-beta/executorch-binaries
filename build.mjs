@@ -4,7 +4,7 @@ import {python, torchPath} from './common.mjs';
 
 const flags = [
   `CMAKE_PREFIX_PATH=${await torchPath()}`,
-  `PYTHON_EXECUTABLE=${await python()}`,
+  `PYTHON_EXECUTABLE=${python}`,
   `FLATC_EXECUTABLE=${await which('flatc')}`,
   'EXECUTORCH_BUILD_EXTENSION_DATA_LOADER=ON',
   'EXECUTORCH_BUILD_EXTENSION_MODULE=ON',
@@ -14,24 +14,28 @@ const flags = [
   'EXECUTORCH_BUILD_XNNPACK=ON',
 ]
 
+const targetArch = argv['target-arch'] || process.arch
+const targetOs = argv['target-os'] || {
+  darwin: 'mac',
+  linux: 'linux',
+  win32: 'win',
+}[process.platform]
+
 if (process.platform == 'darwin') {
   flags.push('CMAKE_TOOLCHAIN_FILE=third-party/ios-cmake/ios.toolchain.cmake',
              'DEPLOYMENT_TARGET=10.15',
              'EXECUTORCH_BUILD_COREML=ON',
              'EXECUTORCH_BUILD_MPS=ON')
-  const targetArch = argv['target-arch'] || process.arch
   if (targetArch == 'arm64')
     flags.push('PLATFORM=MAC_ARM64')
   else if (targetArch == 'x64')
     flags.push('PLATFORM=MAC')
   else
     throw new Error(`Unsupport target arch ${targetArch} on macOS`)
+} else {
+  if (targetArch != process.arch)
+    throw new Error('Cross-compilation is not supported except for macOS')
 }
-
-// Use ccache when available.
-try {
-  flags.push(`CMAKE_CXX_COMPILER_LAUNCHER=${await which('ccache')}`)
-} catch {}
 
 // Use clang when possible.
 try {
@@ -39,21 +43,15 @@ try {
   process.env.CXX = await which('clang++')
 } catch {}
 
-const outDir = 'out'
 // Regenerate project if repo or build args args updated.
-const stamp = `${outDir}/.initalized`
-const buildArgs = await captureBuildArgs()
-if (!fs.existsSync(stamp) || fs.readFileSync(stamp).toString() != buildArgs) {
+const outDir = 'out'
+const stamp = [ targetArch, targetOs, await $`git submodule`, ...flags ].join('\n')
+const stampFile = `${outDir}/.stamp`
+if (!fs.existsSync(stampFile) || fs.readFileSync(stampFile).toString() != stamp) {
   fs.emptyDirSync(outDir)
   await $`cmake executorch -B ${outDir} ${flags.map(f => '-D' + f)}`
-  fs.writeFileSync(stamp, buildArgs)
+  fs.writeFileSync(stampFile, stamp)
 }
 
 // Run building.
 await $`cmake --build ${outDir} --config Release -j`
-
-// Return a text used for identifying whether we should clean out dir.
-async function captureBuildArgs() {
-  const text = await $`git submodule`
-  return text + flags.join('\n')
-}
