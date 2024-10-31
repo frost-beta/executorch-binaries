@@ -54,5 +54,7 @@ if (!fs.existsSync(stampFile) || fs.readFileSync(stampFile).toString() != stamp)
   fs.writeFileSync(stampFile, stamp)
 }
 
-// Run building.
-await $`cmake --build ${outDir} --config Release -j`
+// Limit parallel jobs if running on a machine with small RAM, otherwise linking
+// may take too much time due to swapping.
+const jobs = os.totalmem() < 10 * Math.pow(1024, 3) ? 1 : ''
+await $`cmake --build ${outDir} --config Release -j ${jobs}`
