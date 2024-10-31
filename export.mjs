@@ -21,5 +21,6 @@ await Promise.all(libs.map(l => fs.copy(l, `dist/libs/${path.basename(l)}`)))
 // Zip files.
 const [ targetArch, targetOs ] = String(await fs.readFile('out/.stamp')).split('\n')
 const name = `executorch-${targetOs}-${targetArch}-full`
+await fs.copy('out/.stamp', 'dist/.stamp')
 await $`${python} -c "import shutil; shutil.make_archive('${name}', 'zip', 'dist')"`
 await fs.remove('dist')

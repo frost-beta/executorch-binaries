@@ -45,7 +45,8 @@ try {
 
 // Regenerate project if repo or build args args updated.
 const outDir = 'out'
-const stamp = [ targetArch, targetOs, await $`git submodule`, ...flags ].join('\n')
+const version = (await $`git submodule`).stdout.trim()
+const stamp = [ targetArch, targetOs, version, ...flags ].join('\n')
 const stampFile = `${outDir}/.stamp`
 if (!fs.existsSync(stampFile) || fs.readFileSync(stampFile).toString() != stamp) {
   fs.emptyDirSync(outDir)
