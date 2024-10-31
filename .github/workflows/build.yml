@@ -61,9 +61,6 @@ jobs:
         with:
           merge-multiple: true
 
-      - name: Compress files
-        run: gzip *
-
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
