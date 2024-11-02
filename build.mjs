@@ -3,6 +3,7 @@
 import {python, torchPath} from './common.mjs';
 
 const flags = [
+  'CMAKE_INSTALL_PREFIX=cmake-install',
   `CMAKE_PREFIX_PATH=${await torchPath()}`,
   `PYTHON_EXECUTABLE=${python}`,
   `FLATC_EXECUTABLE=${await which('flatc')}`,
@@ -22,16 +23,18 @@ const targetOs = argv['target-os'] || {
 }[process.platform]
 
 if (process.platform == 'darwin') {
-  flags.push('CMAKE_TOOLCHAIN_FILE=third-party/ios-cmake/ios.toolchain.cmake',
-             'DEPLOYMENT_TARGET=10.15',
+  flags.push('DEPLOYMENT_TARGET=10.15',
              'EXECUTORCH_BUILD_COREML=ON',
              'EXECUTORCH_BUILD_MPS=ON')
-  if (targetArch == 'arm64')
-    flags.push('PLATFORM=MAC_ARM64')
-  else if (targetArch == 'x64')
-    flags.push('PLATFORM=MAC')
-  else
-    throw new Error(`Unsupport target arch ${targetArch} on macOS`)
+  if (targetArch != process.arch) {
+    flags.push('CMAKE_TOOLCHAIN_FILE=third-party/ios-cmake/ios.toolchain.cmake')
+    if (targetArch == 'arm64')
+      flags.push('PLATFORM=MAC_ARM64')
+    else if (targetArch == 'x64')
+      flags.push('PLATFORM=MAC')
+    else
+      throw new Error(`Unsupport target arch ${targetArch} on macOS`)
+  }
 } else {
   if (targetArch != process.arch)
     throw new Error('Cross-compilation is not supported except for macOS')
