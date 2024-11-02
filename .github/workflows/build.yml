@@ -11,9 +11,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [linux, mac]
-        arch: [x64]
-        include:
-          - os: mac
+        arch: [arm64, x64]
+        config: [Debug, Release]
+        exclude:
+          - os: linux
             arch: arm64
 
     steps:
@@ -29,13 +30,13 @@ jobs:
       - name: Use ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
-          key: 20241030-${{ matrix.os }}
+          key: 20241030-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.config }}
 
       - name: Bootstrap
         run: npx zx bootstrap.mjs --verbose
 
       - name: Build
-        run: npx zx build.mjs --target-arch ${{ matrix.arch }}
+        run: npx zx build.mjs --target-arch ${{ matrix.arch }} --config ${{ matrix.config }}
 
       - name: Export
         run: npx zx export.mjs
@@ -43,8 +44,8 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: executorch-${{ matrix.os }}-${{ matrix.arch }}
-          path: executorch-${{ matrix.os }}-${{ matrix.arch }}-*.zip
+          name: executorch-${{ matrix.config }}-${{ matrix.os }}-${{ matrix.arch }}
+          path: executorch-*.zip
           retention-days: 1
 
   release:

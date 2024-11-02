@@ -2,8 +2,16 @@
 
 import {python, torchPath} from './common.mjs';
 
+const config = argv['config'] || 'Release'
+const targetArch = argv['target-arch'] || process.arch
+const targetOs = argv['target-os'] || {
+  darwin: 'mac',
+  linux: 'linux',
+  win32: 'win',
+}[process.platform]
+
 const flags = [
-  'CMAKE_INSTALL_PREFIX=cmake-install',
+  `CMAKE_BUILD_TYPE=${config}`,
   `CMAKE_PREFIX_PATH=${await torchPath()}`,
   `PYTHON_EXECUTABLE=${python}`,
   `FLATC_EXECUTABLE=${await which('flatc')}`,
@@ -14,13 +22,6 @@ const flags = [
   'EXECUTORCH_BUILD_KERNELS_QUANTIZED=ON',
   'EXECUTORCH_BUILD_XNNPACK=ON',
 ]
-
-const targetArch = argv['target-arch'] || process.arch
-const targetOs = argv['target-os'] || {
-  darwin: 'mac',
-  linux: 'linux',
-  win32: 'win',
-}[process.platform]
 
 if (process.platform == 'darwin') {
   flags.push('DEPLOYMENT_TARGET=10.15',
@@ -54,7 +55,7 @@ try {
 // Regenerate project if repo or build args args updated.
 const outDir = 'out'
 const version = (await $`git submodule`).stdout.trim()
-const stamp = [ targetArch, targetOs, version, ...flags ].join('\n')
+const stamp = [ config, targetArch, targetOs, version, ...flags ].join('\n')
 const stampFile = `${outDir}/.stamp`
 if (!fs.existsSync(stampFile) || fs.readFileSync(stampFile).toString() != stamp) {
   fs.emptyDirSync(outDir)
@@ -65,4 +66,4 @@ if (!fs.existsSync(stampFile) || fs.readFileSync(stampFile).toString() != stamp)
 // Limit parallel jobs if running on a machine with small RAM, otherwise linking
 // may take too much time due to swapping.
 const jobs = os.totalmem() < 10 * Math.pow(1024, 3) ? 1 : ''
-await $`cmake --build ${outDir} --config Release -j ${jobs}`
+await $`cmake --build ${outDir} --config ${config} -j ${jobs}`
