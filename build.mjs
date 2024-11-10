@@ -23,6 +23,11 @@ const flags = [
   'EXECUTORCH_BUILD_XNNPACK=ON',
 ]
 
+if (config == 'Debug') {
+  flags.push('EXECUTORCH_ENABLE_LOGGING=ON',
+             'ET_MIN_LOG_LEVEL=Debug')
+}
+
 if (process.platform == 'darwin') {
   flags.push('DEPLOYMENT_TARGET=10.15',
              'EXECUTORCH_BUILD_COREML=ON',
