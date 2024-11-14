@@ -3,7 +3,7 @@
 import {python, torchPath} from './common.mjs';
 
 const config = argv['config'] || 'Release'
-const targetArch = argv['target-arch'] || process.arch
+const targetArch = argv['target-arch'] || argv['target-cpu'] || process.arch
 const targetOs = argv['target-os'] || {
   darwin: 'mac',
   linux: 'linux',
@@ -18,7 +18,6 @@ const flags = [
   'EXECUTORCH_BUILD_EXTENSION_DATA_LOADER=ON',
   'EXECUTORCH_BUILD_EXTENSION_MODULE=ON',
   'EXECUTORCH_BUILD_EXTENSION_TENSOR=ON',
-  'EXECUTORCH_BUILD_KERNELS_CUSTOM=ON',
   'EXECUTORCH_BUILD_KERNELS_OPTIMIZED=ON',
   'EXECUTORCH_BUILD_KERNELS_QUANTIZED=ON',
   'EXECUTORCH_BUILD_XNNPACK=ON',
@@ -27,6 +26,11 @@ const flags = [
 if (config == 'Debug') {
   flags.push('EXECUTORCH_ENABLE_LOGGING=ON',
              'ET_MIN_LOG_LEVEL=Debug')
+}
+
+// https://github.com/pytorch/executorch/issues/6839
+if (!(process.platform == 'darwin' && targetArch == 'x64')) {
+  flags.push('EXECUTORCH_BUILD_KERNELS_CUSTOM=ON')
 }
 
 if (process.platform == 'darwin') {
